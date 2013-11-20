@@ -11,6 +11,10 @@ Created by unsignedzero
 
 ## Version/Changelog #
 
+## 1.0.0 #
+* First work version.
+* Code need to be reordered but works just fine
+
 ## 0.5.0 #
 * Parses user input and prints it out
 * Code outline created
