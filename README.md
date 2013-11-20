@@ -11,6 +11,12 @@ Created by unsignedzero
 
 ## Version/Changelog #
 
+## 1.2.0 #
+* Refactored mostly all strings as defines
+* Cleaned up code
+* Removed unneeded comments and commented out code
+* Added exit into shell
+
 ## 1.1.0 #
 * Cleaned code
 * Removed execlp and used execvp
