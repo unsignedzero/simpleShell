@@ -11,6 +11,10 @@ Created by unsignedzero
 
 ## Version/Changelog #
 
+## 1.1.0 #
+* Cleaned code
+* Removed execlp and used execvp
+
 ## 1.0.0 #
 * First work version.
 * Code need to be reordered but works just fine

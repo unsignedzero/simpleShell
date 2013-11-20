@@ -4,7 +4,7 @@
  * lives when the command is executed
  *
  * Author:David Tran
- * Version 1
+ * Version 1.1
  */
 
 #include<stdio.h>
@@ -20,14 +20,12 @@
 #define DEBUG 0
 #define debug if (DEBUG)
 
-#define BUFFER_SIZE 256
-#define ARG_COUNT 9
+#define BUFFER_SIZE 1024
+#define ARG_COUNT 21
 
 enum pipe_flag {
   NO_PIPE     = 0, //No pipe
-  PIPE_OUT    = 1, //Send output to file
   PIPE_START  = 2, //Send into pipe (always pipea)
-  PIPE_IN     = 3, //Take in input
   PIPE_CONTA  = 4, //Draw from pipea and write to pipeb
   PIPE_DRAINA = 5, //Drain the pipea
   PIPE_CONTB  = 6, //Draw from pipeb and write to pipea
@@ -59,22 +57,26 @@ int shell(void);
 
 //Support String Manipulation Functions
 void purge_string( char*, int );
-void purge_run_string( char[][BUFFER_SIZE] );
 char remove_whitespace( char*, int*, int* );
-void clear_run_array( char[][BUFFER_SIZE] );
-void check_ctrl_d( char*, int );
+void check_ctrl_d( char[], int );
+
+//Memory Management of char *[]
+void null_run_array(char *[], int);
+void free_run_array(char *[], int);
 
 //Debug String Print
-void show_state( char[][BUFFER_SIZE], int );
+void show_state( char* [], int );
+void show_io( char* []);
 
 //Command Manipulation Functions
-int command_out( char*, int, int, bool*, char[][BUFFER_SIZE], unsigned int* );
-int modify_fin_fout( char*, int, int, bool , char[][BUFFER_SIZE] );
+int command_out( char*, int, int, bool*, char*[], unsigned int* );
+int modify_fin_fout( char*, int, int, bool , char*[] );
 
 //Fork Function and support
-void proc_fork( int* , int*,  char[][BUFFER_SIZE] , int, enum pipe_flag* );
+void proc_fork( int* , int*,  char*[], char*[] , int, enum pipe_flag* );
 void syserror( const char * );
 
+///////////////////////////////////////////////////////////////////////////////
 
 //Main
 int main(void) {
@@ -96,23 +98,27 @@ int shell(void) {
   static bool set_file_input = false;
   static bool set_file_output = false;
 
-  //Stores input and related states
+  //Stores input
   static char input_buffer[BUFFER_SIZE];
   purge_string(input_buffer,BUFFER_SIZE);
+
   static char current_char;
   static int previous_end, current_pos;
   static bool is_command = true;
 
   //Command Run String Buffer
   unsigned int args_count = 0;
-  char run_buffer_array[3+ARG_COUNT][BUFFER_SIZE];
-  clear_run_array(run_buffer_array);
+  char *run_buffer_array[ARG_COUNT];
+  null_run_array(run_buffer_array,ARG_COUNT);
+  char *io_pipe_array[2];
+  null_run_array(io_pipe_array,2);
 
-  // [0] will contain the input file  or "\0" if there is none
-  // [1] will contain the output file or "\0" if there is none
-  // [2-11] will be the args for execlp
-  // [2] will contain the program name for the first two args of execlp
-  // [3..11] will contain the 9 args for the function.
+  // io_pipe_array
+  // [0] will contain the input file  or 0 if there is none
+  // [1] will contain the output file or 0 if there is none
+  
+  // run_buffer_array
+  // [0..] will contain the args for argv
 
   // Creating pipes
   int pfda[2];
@@ -153,7 +159,7 @@ int shell(void) {
 
       if ( current_char == '\n' ) {
         debug printf( "--sh: 'newline' found\n" );
-        //Check flags that are missing and DON'T RUN proc if they are on
+        //Check flags that are missing // No need
         break;
       }
 
@@ -167,7 +173,7 @@ int shell(void) {
         if ( flag_mode == NO_PIPE )
           flag_mode = PIPE_START;
 
-        proc_fork(pfda, pfdb, run_buffer_array, args_count, &flag_mode);
+        proc_fork(pfda, pfdb, run_buffer_array, io_pipe_array, args_count, &flag_mode);
         is_command = true;
       }
 
@@ -224,12 +230,13 @@ int shell(void) {
         }
 
         //Check if we have a pipe before this string
-        if ( !set_file_input && !set_file_output )
+        if ( !set_file_input && !set_file_output ){
           previous_end = command_out(input_buffer,previous_end,
             current_pos,&is_command,run_buffer_array,&args_count);
+        }
         else{
           previous_end = modify_fin_fout(input_buffer,previous_end,
-            current_pos,set_file_input,run_buffer_array);
+            current_pos,set_file_input,io_pipe_array);
           set_file_input = set_file_output = false;
         }
       }
@@ -252,12 +259,13 @@ int shell(void) {
         }
 
         //Check if we have a pipe before this string
-        if ( !set_file_input && !set_file_output )
+        if ( !set_file_input && !set_file_output ){
           previous_end = command_out(input_buffer,previous_end,
             current_pos,&is_command,run_buffer_array,&args_count);
+        }
         else{
           previous_end = modify_fin_fout(input_buffer,previous_end,
-            current_pos,set_file_input,run_buffer_array);
+            current_pos,set_file_input,io_pipe_array);
           set_file_input = set_file_output = false;
         }
       }
@@ -267,7 +275,10 @@ int shell(void) {
         debug printf( "--sh: parsing case c, string delimiter ' '\n" );
         while( (current_char = input_buffer[current_pos]) != ' ' ) {
           if ( current_char == '\0' || current_char == '\n' ||
-              current_char == '\"' || current_char == '\'' )
+               current_char == '\"' || current_char == '\'' || 
+               current_char == '<'  || current_char == '>'  ||
+               current_char == '|' 
+               )
             break;
           else if ( current_char == '\\' )
             current_pos += 1;
@@ -275,12 +286,13 @@ int shell(void) {
         }
 
         //Check if we have a pipe before this string
-        if ( !set_file_input && !set_file_output )
+        if ( !set_file_input && !set_file_output ){
           previous_end = command_out(input_buffer,previous_end,
             current_pos,&is_command,run_buffer_array,&args_count);
+        }
         else{
           previous_end = modify_fin_fout(input_buffer,previous_end,
-            current_pos,set_file_input,run_buffer_array);
+            current_pos,set_file_input,io_pipe_array);
           set_file_input = set_file_output = false;
         }
       }
@@ -297,7 +309,7 @@ int shell(void) {
     else if ( flag_mode == PIPE_CONTB )
       flag_mode = PIPE_DRAINB;
 
-    proc_fork(pfda, pfdb, run_buffer_array, args_count, &flag_mode);
+    proc_fork(pfda, pfdb, run_buffer_array, io_pipe_array, args_count, &flag_mode);
     is_command = true;
     purge_string(input_buffer,BUFFER_SIZE);
 
@@ -314,23 +326,29 @@ int shell(void) {
 
 ///////////////////////////////////////////////////////////////////////////////
 int modify_fin_fout( char* input_buffer, int previous_end,
-    int current_pos, bool mode, char run_buffer_array[][BUFFER_SIZE]) {
+    int current_pos, bool mode, char* io_pipe_array[]) {
   //Adds the file name, due to a pipe character in front,
   //into the cmd array
 
-  if ( mode )
-    strncpy(run_buffer_array[0], //Input File
-        input_buffer+previous_end+1,current_pos-previous_end-1);
-  else
-    strncpy(run_buffer_array[1], //Output File
-        input_buffer+previous_end+1,current_pos-previous_end-1);
+  if ( mode ){
+    io_pipe_array[0] = (char *) malloc(current_pos-previous_end);
+    strncpy(io_pipe_array[0], //Input File
+        input_buffer+previous_end+1,current_pos-previous_end);
+    io_pipe_array[0][current_pos-previous_end-1] = '\0';
+  }
+  else{
+    io_pipe_array[1] = (char *) malloc(current_pos-previous_end);
+    strncpy(io_pipe_array[1], //Output File
+        input_buffer+previous_end+1,current_pos-previous_end);
+    io_pipe_array[1][current_pos-previous_end-1] = '\0';
+  }
 
   return current_pos;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 int command_out( char* input_buffer, int previous_end,
-    int current_pos, bool *is_command, char run_buffer_array[][BUFFER_SIZE],
+    int current_pos, bool *is_command, char* run_buffer_array[],
     unsigned int* args ) {
   //Parses the input string and adds it into the cmd array
 
@@ -343,18 +361,24 @@ int command_out( char* input_buffer, int previous_end,
 
   if ( *is_command ) {
     //debug printf( "--sh: reading in command \n" );
+    //Clear Run Array
+    //free_run_array(run_buffer_array,ARG_COUNT);
     args_count = 0;
-    strncpy(run_buffer_array[2+args_count],
+    run_buffer_array[args_count] = (char *) malloc(current_pos-previous_end-1);
+
+    strncpy(run_buffer_array[args_count],
         input_buffer+previous_end+1,current_pos-previous_end-1);
-    run_buffer_array[2+args_count][current_pos-previous_end-1] = '\0';
+    run_buffer_array[args_count][current_pos-previous_end-1] = '\0';
     *is_command = false;
   }
   else {
     args_count+=1;
+    run_buffer_array[args_count] = (char *) malloc(current_pos-previous_end-1);
+
     //debug printf( "--sh:reading in argument %d\n", args_count );
-    strncpy(run_buffer_array[2+args_count],
+    strncpy(run_buffer_array[args_count],
         input_buffer+previous_end+1,current_pos-previous_end-1 );
-    run_buffer_array[2+args_count][current_pos-previous_end-1] = '\0';
+    run_buffer_array[args_count][current_pos-previous_end-1] = '\0';
   }
 
   *args = args_count;
@@ -391,29 +415,20 @@ void purge_string( char* buffer, int length ) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void clear_run_array ( char run_buffer [][BUFFER_SIZE] ){
-  //Removes the previous command from the cmd array
-
-  static unsigned int i,j;
-  for( i = 0 ; i < (3+ARG_COUNT) ; i++ )
-    for( j = 0 ; j < BUFFER_SIZE ; j++ )
-      run_buffer[i][j] = '\0';
-
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void proc_fork( int* pfda, int* pfdb, char run_buffer_array[][BUFFER_SIZE],
-    int arg_count, enum pipe_flag* _flags) {
+void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
+    char* io_pipe_array [], int arg_count, enum pipe_flag* _flags) {
   //Executes the fork.exec and pipe commands
 
   static char concat_string_buffer[BUFFER_SIZE*2];
 
   int pid,status;
   debug show_state( run_buffer_array, arg_count );
+  debug printf( "File IO:\n" );
+  debug show_io( io_pipe_array );
 
   status = 0;
 
-  debug printf("Fork started\n");
+  debug printf("--sh: Fork started\n");
 
   //Setting up the pipes correctly in the call
   //No pipes in the call
@@ -425,20 +440,20 @@ void proc_fork( int* pfda, int* pfdb, char run_buffer_array[][BUFFER_SIZE],
         break;
       case  0:
         //Stdin
-        if ( run_buffer_array[0][0] != '\0' ) {
+        if ( io_pipe_array[0] != NULL ) {
           if ( close( 0 ) == -1 )
             syserror( STDIN_CLOSE_ERROR );
-          status = open(run_buffer_array[0],  O_RDONLY | O_CREAT);
+          status = open(io_pipe_array[0],  O_RDONLY | O_CREAT);
           if ( status < 0 )
             syserror( STDIN_OPEN_ERROR );
           dup(status);
         }
 
         //Stdout
-        if ( run_buffer_array[1][0] != '\0' ) {
+        if ( io_pipe_array[1] != NULL ) {
           if ( close( 1 ) == -1 )
             syserror( STDOUT_CLOSE_ERROR );
-          status = open(run_buffer_array[1],  O_WRONLY | O_CREAT);
+          status = open(io_pipe_array[1],  O_WRONLY | O_CREAT);
           if ( status < 0 )
             syserror( STDIN_OPEN_ERROR );
           dup(status);
@@ -447,6 +462,11 @@ void proc_fork( int* pfda, int* pfdb, char run_buffer_array[][BUFFER_SIZE],
         if ( close( pfda[0] ) == -1 || close( pfda[1] ) == -1 ||
             close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 )
           syserror( PFD_CLOSE_ERROR );
+
+        execvp( run_buffer_array[0], (char** ) run_buffer_array );
+        sprintf( concat_string_buffer ,
+          "-sh: %s: command not found", run_buffer_array[0]);
+        syserror( concat_string_buffer );
         break;
     }
   }
@@ -459,10 +479,10 @@ void proc_fork( int* pfda, int* pfdb, char run_buffer_array[][BUFFER_SIZE],
         break;
       case  0:
         //Stdin
-        if ( run_buffer_array[0][0] != '\0' ) {
+        if ( io_pipe_array[0] != NULL ) {
           if ( close( 0 ) == -1 )
             syserror( STDIN_CLOSE_ERROR );
-          status = open(run_buffer_array[0],O_RDONLY | O_CREAT);
+          status = open(io_pipe_array[0],O_RDONLY | O_CREAT);
           if ( status < 0 )
             syserror( STDIN_OPEN_ERROR );
           dup(status);
@@ -476,6 +496,11 @@ void proc_fork( int* pfda, int* pfdb, char run_buffer_array[][BUFFER_SIZE],
         if ( close( pfda[0] ) == -1 || close( pfda[1] ) == -1 ||
             close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 )
           syserror( PFD_CLOSE_ERROR );
+
+        execvp( run_buffer_array[0], (char** ) run_buffer_array );
+        sprintf( concat_string_buffer ,
+          "-sh: %s: command not found", run_buffer_array[0]);
+        syserror( concat_string_buffer );
         break;
     }
   }
@@ -500,6 +525,11 @@ void proc_fork( int* pfda, int* pfdb, char run_buffer_array[][BUFFER_SIZE],
         if ( close( pfda[0] ) == -1 || close( pfda[1] ) == -1 ||
             close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 )
           syserror( PFD_CLOSE_ERROR );
+
+        execvp( run_buffer_array[0], (char** ) run_buffer_array );
+        sprintf( concat_string_buffer ,
+          "-sh: %s: command not found", run_buffer_array[0]);
+        syserror( concat_string_buffer );
         break;
     }
   }
@@ -524,6 +554,11 @@ void proc_fork( int* pfda, int* pfdb, char run_buffer_array[][BUFFER_SIZE],
         if ( close( pfda[0] ) == -1 || close( pfda[1] ) == -1 ||
             close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 )
           syserror( PFD_CLOSE_ERROR );
+
+        execvp( run_buffer_array[0], (char** ) run_buffer_array );
+        sprintf( concat_string_buffer ,
+          "-sh: %s: command not found", run_buffer_array[0]);
+        syserror( concat_string_buffer );
         break;
     }
   }
@@ -541,10 +576,10 @@ void proc_fork( int* pfda, int* pfdb, char run_buffer_array[][BUFFER_SIZE],
         dup(pfda[0]);
 
         //Stdout
-        if ( run_buffer_array[1][0] != '\0' ) {
+        if ( io_pipe_array[1] != NULL ) {
           if ( close( 1 ) == -1 )
             syserror( STDOUT_CLOSE_ERROR );
-          status = open(run_buffer_array[1],O_WRONLY | O_CREAT);
+          status = open(io_pipe_array[1],O_WRONLY | O_CREAT);
           if ( status < 0 )
             syserror( STDOUT_OPEN_ERROR );
           dup(status);
@@ -553,6 +588,11 @@ void proc_fork( int* pfda, int* pfdb, char run_buffer_array[][BUFFER_SIZE],
         if ( close( pfda[0] ) == -1 || close( pfda[1] ) == -1 ||
             close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 )
           syserror( PFD_CLOSE_ERROR );
+
+        execvp( run_buffer_array[0], (char** ) run_buffer_array );
+        sprintf( concat_string_buffer ,
+          "-sh: %s: command not found", run_buffer_array[0]);
+        syserror( concat_string_buffer );
         break;
     }
   }
@@ -570,10 +610,10 @@ void proc_fork( int* pfda, int* pfdb, char run_buffer_array[][BUFFER_SIZE],
         dup(pfdb[0]);
 
         //Stdout
-        if ( run_buffer_array[1][0] != '\0' ) {
+        if ( io_pipe_array[1] != NULL ) {
           if ( close( 1 ) == -1 )
             syserror( STDOUT_CLOSE_ERROR );
-          status = open(run_buffer_array[1],O_WRONLY | O_CREAT);
+          status = open(io_pipe_array[1],O_WRONLY | O_CREAT);
           if ( status < 0 )
             syserror( STDOUT_OPEN_ERROR );
           dup(status);
@@ -581,170 +621,13 @@ void proc_fork( int* pfda, int* pfdb, char run_buffer_array[][BUFFER_SIZE],
         if ( close( pfda[0] ) == -1 || close( pfda[1] ) == -1 ||
             close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 )
           syserror( PFD_CLOSE_ERROR );
+
+        execvp( run_buffer_array[0], (char** ) run_buffer_array );
+        sprintf( concat_string_buffer ,
+          "-sh: %s: command not found", run_buffer_array[0]);
+        syserror( concat_string_buffer );
         break;
     }
-  }
-
-
-  //Child Execution
-  if ( pid == 0 ) {
-    switch ( arg_count ) {
-      case 0:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],
-            NULL );
-        break;
-      case 1:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            NULL );
-        break;
-      case 2:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],
-            NULL );
-        break;
-      case 3:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],run_buffer_array[ 5],
-            NULL );
-        break;
-      case 4:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],run_buffer_array[ 5],
-            run_buffer_array[ 6],
-            NULL );
-        break;
-      case 5:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],run_buffer_array[ 5],
-            run_buffer_array[ 6],run_buffer_array[ 7],
-            NULL );
-        break;
-      case 6:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],run_buffer_array[ 5],
-            run_buffer_array[ 6],run_buffer_array[ 7],
-            run_buffer_array[ 8],
-            NULL );
-        break;
-      case 7:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],run_buffer_array[ 5],
-            run_buffer_array[ 6],run_buffer_array[ 7],
-            run_buffer_array[ 8],run_buffer_array[ 9],
-            NULL );
-        break;
-      case 8:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],run_buffer_array[ 5],
-            run_buffer_array[ 6],run_buffer_array[ 7],
-            run_buffer_array[ 8],run_buffer_array[ 9],
-            run_buffer_array[10],
-            NULL );
-        break;
-      case 9:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],run_buffer_array[ 5],
-            run_buffer_array[ 6],run_buffer_array[ 7],
-            run_buffer_array[ 8],run_buffer_array[ 9],
-            run_buffer_array[10],run_buffer_array[11],
-            NULL );
-        break;
-
-      case 10:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],run_buffer_array[ 5],
-            run_buffer_array[ 6],run_buffer_array[ 7],
-            run_buffer_array[ 8],run_buffer_array[ 9],
-            run_buffer_array[10],run_buffer_array[11],
-            run_buffer_array[12],
-            NULL );
-        break;
-      case 11:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],run_buffer_array[ 5],
-            run_buffer_array[ 6],run_buffer_array[ 7],
-            run_buffer_array[ 8],run_buffer_array[ 9],
-            run_buffer_array[10],run_buffer_array[11],
-            run_buffer_array[12],run_buffer_array[13],
-            NULL );
-        break;
-      case 12:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],run_buffer_array[ 5],
-            run_buffer_array[ 6],run_buffer_array[ 7],
-            run_buffer_array[ 8],run_buffer_array[ 9],
-            run_buffer_array[10],run_buffer_array[11],
-            run_buffer_array[12],run_buffer_array[13],
-            run_buffer_array[14],
-            NULL );
-        break;
-      case 13:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],run_buffer_array[ 5],
-            run_buffer_array[ 6],run_buffer_array[ 7],
-            run_buffer_array[ 8],run_buffer_array[ 9],
-            run_buffer_array[10],run_buffer_array[11],
-            run_buffer_array[12],run_buffer_array[13],
-            run_buffer_array[14],run_buffer_array[15],
-            NULL );
-        break;
-      case 14:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],run_buffer_array[ 5],
-            run_buffer_array[ 6],run_buffer_array[ 7],
-            run_buffer_array[ 8],run_buffer_array[ 9],
-            run_buffer_array[10],run_buffer_array[11],
-            run_buffer_array[12],run_buffer_array[13],
-            run_buffer_array[14],run_buffer_array[15],
-            run_buffer_array[16],
-            NULL );
-        break;
-      case 15:
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],run_buffer_array[ 5],
-            run_buffer_array[ 6],run_buffer_array[ 7],
-            run_buffer_array[ 8],run_buffer_array[ 9],
-            run_buffer_array[10],run_buffer_array[11],
-            run_buffer_array[12],run_buffer_array[13],
-            run_buffer_array[14],run_buffer_array[15],
-            run_buffer_array[16],run_buffer_array[17],
-            NULL );
-        break;
-      default:
-        printf( "-sh: warning only the first 15 arguments passed\n" );
-        status = execlp( run_buffer_array[ 2],
-            run_buffer_array[ 2],run_buffer_array[ 3],
-            run_buffer_array[ 4],run_buffer_array[ 5],
-            run_buffer_array[ 6],run_buffer_array[ 7],
-            run_buffer_array[ 8],run_buffer_array[ 9],
-            run_buffer_array[10],run_buffer_array[11],
-            run_buffer_array[12],run_buffer_array[13],
-            run_buffer_array[14],run_buffer_array[15],
-            run_buffer_array[16],run_buffer_array[17],
-            NULL );
-        break;
-    }
-    //Error Call
-    if ( status == -1 )
-      sprintf( concat_string_buffer ,
-          "-sh: %s: command not found", run_buffer_array[2]);
-    syserror( concat_string_buffer );
   }
 
   //Close the "used" pipe
@@ -785,7 +668,8 @@ void proc_fork( int* pfda, int* pfdb, char run_buffer_array[][BUFFER_SIZE],
   }
 
   //Purge Run Buffer
-  clear_run_array(run_buffer_array);
+  free_run_array(run_buffer_array,ARG_COUNT);
+  free_run_array(io_pipe_array,2);
   debug printf("--sh: ending proc_fork call\n" );
 }
 
@@ -800,20 +684,43 @@ void syserror(const char *s) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void show_state( char run_buffer_array[][BUFFER_SIZE], int args_count ) {
+void null_run_array(char * run_buffer_array[], int size){
+  //Sets every element of a char* array to null
+  static int i;
+  for( i = 0 ; i < size ; i++ ){
+    run_buffer_array[i] = NULL;
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void free_run_array(char * run_buffer_array[], int size){
+  //Frees every element of a char* [] and then sets them to null
+  static int i;
+  for( i = 0 ; i < size ; i++ ){
+    free(run_buffer_array[i]);
+    run_buffer_array[i] = NULL;
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void show_state( char* run_buffer_array[], int args_count ) {
   static int i;
   //Prints everything in the cmd array
 
-  printf( "File in : %s\n" , run_buffer_array[0] );
-  printf( "File out: %s\n" , run_buffer_array[1] );
-  printf( "File : %s\n" , run_buffer_array[2] );
+  printf( "Command: %s\n" , run_buffer_array[0] );
   for( i = 0 ; i < args_count ; i++ )
-    printf( "Argument %d: %s\n" , i, run_buffer_array[3+i] );
+    printf( "Argument %d: %s\n" , i, run_buffer_array[1+i] );
 
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void check_ctrl_d( char* input_buffer, int length ){
+void show_io( char* io_pipe_array[]){
+  printf("Input file is %s\n", io_pipe_array[0]);
+  printf("Output file is %s\n", io_pipe_array[1]);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void check_ctrl_d( char input_buffer[], int length ){
   static int i;
   //Checks for Ctrl+D in the input
 
@@ -832,5 +739,4 @@ void check_ctrl_d( char* input_buffer, int length ){
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 
