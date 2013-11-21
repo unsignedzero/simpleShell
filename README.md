@@ -1,15 +1,24 @@
 # simpleShell #
 
 This was a school project where students create a working shell
-that supports piping (specifically |, < and >).
+that supports piping (specifically |, < and >) and forking.
 
-Now I've refactored and cleaned the code.
+Currently now the main work is done in terminal.c but the messages that
+it prints can be edited externally in termlang.h and compiled in, allowing
+the user to translate or insert different messages as needed.
 
-Created by unsignedzero
+Created by David Tran (unsignedzero)
 
 * * * *
 
 ## Version/Changelog #
+
+## 1.3.0 #
+* Termlang.h are all the constant strings allowing people to translate the
+  tool, recompile it and have messages in different languages as needed.
+* Terminal.h contains the main comments for the functions, how they operate
+  and any assumptions.
+* Broke terminal.c into three pieces and created a makefile
 
 ## 1.2.0 #
 * Refactored mostly all strings as defines

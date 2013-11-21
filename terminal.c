@@ -5,127 +5,37 @@
  * functions, this might not work properly on Windows.
  *
  * Author:David Tran
- * Version: 1.2.0
+ * Version: 1.3.0
  */
+
+#ifndef TERMINAL_C
+#define TERMINAL_C
+
+#ifndef TERMINAL_H
+ #include "terminal.h"
+ #ifndef TERMINAL_H
+  #error "Missing header file for terminal"
+ #endif
+#endif
 
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
 #include<stdbool.h>
 
-#include<unistd.h>
-#include<sys/wait.h>
-#include<fcntl.h>
 #include<errno.h>
-
-#define DEBUG 0
-#define debug if (DEBUG&1)
-#define debug_verbose if (DEBUG&2)
-
-#define BUFFER_SIZE 1024
-#define ARG_COUNT 21
-
-enum pipe_flag{
-  NO_PIPE     = 0, // No pipe
-  PIPE_START  = 2, // Send into pipe (always pipea)
-  PIPE_CONTA  = 4, // Draw from pipea and write to pipeb
-  PIPE_DRAINA = 5, // Drain the pipea
-  PIPE_CONTB  = 6, // Draw from pipeb and write to pipea
-  PIPE_DRAINB = 7  // Drain from pipeb
-};
-///////////////////////////////////////////////////////////////////////////////
-// Global error strings
-#define CLOSE_PIPE_FAIL "--sh: exiting shell. Can't close internal pipes"
-#define COMMAND_NOT_FOUND "--sh: %s: command not found"
-#define FORK_FAIL "--sh: can't fork program"
-#define NO_COMMAND_ERROR "--sh: %s: command not found"
-#define PFD_A_CLOSE_FAIL "--sh: Parent can't close internal pipe a"
-#define PFD_B_CLOSE_FAIL "--sh: Parent can't close internal pipe b"
-#define PFD_OPEN_ERROR "--sh: can't create internal pipes"
-#define PFD_CLOSE_ERROR "--sh: can't close internal pipes"
-#define STDIN_CLOSE_ERROR "--sh: can't redirect stdin"
-#define STDIN_OPEN_ERROR "--sh: can't redirect stdin to a file"
-#define STDOUT_CLOSE_ERROR "--sh: can't redirect stdout"
-#define STDOUT_OPEN_ERROR "--sh: can't redirect stdout to a file"
-#define UNEXPECTED_EOL "--sh: syntax error near unexpected token `newline'\n"
-
-// Global debug strings
-#define DEBUG_STRING_CUR_POS "--sh: current position %d\n"
-#define DEBUG_STRING_CUR_INPUT "--sh: input is > %s\n"
-
-#define DEBUG_STRING_NEWLINE_FOUND "--sh: 'newline' found\n"
-#define DEBUG_STRING_PIPE_FOUND "\n--sh: pipe symbol '|' located\n\n"
-#define DEBUG_STRING_LESS_FOUND "\n--sh: pipe symbol '<' located\n\n"
-#define DEBUG_STRING_MORE_FOUND "\n--sh: pipe symbol '>' located\n\n"
-#define DEBUG_STRING_NEWLINE_DELIMIT "--sh: parsing case a, string delimiter '\n"
-#define DEBUG_STRING_QUOTE_DELIMIT "-sh: parsing case b, string delimiter \"'n"
-#define DEBUG_STRING_SPACE_DELIMIT "--sh: parsing case c, string delimiter ' '\n"
-
-#define DEBUG_STRING_REMOVING_WHITESPACE "--sh: removing whitespace\n"
-
-#define DEBUG_STRING_FORK_START "--sh: Fork started\n"
-#define DEBUG_STRING_NO_PIPE "--sh: Flags=NO_PIPE>\n\n"
-#define DEBUG_STRING_PIPE_CONTA "--sh: Flags=PIPE_CONTA>\n\n"
-#define DEBUG_STRING_PIPE_CONTB "--sh: Flags=PIPE_CONTB>\n\n"
-#define DEBUG_STRING_PIPE_DRAINA "--sh: Flags=PIPE_DRAINA>\n\n"
-#define DEBUG_STRING_PIPE_DRAINB "--sh: Flags=PIPE_DRAINB>\n\n"
-#define DEBUG_STRING_FORK_END "--sh: ending proc_fork call\n"
-#define DEBUG_STRING_PIPE_START "--sh Flags=PIPE_START>\n\n"
-
-#define DEBUG_STRING_COMMAND_OUT_CALL "--sh: calling command_out [%d,%d]\n"
-#define DEBUG_STRING_CUR_ARG "--sh: reading in argument %d\n"
-#define DEBUG_STRING_CUR_CMD "--sh: reading in command \n"
-
-#define DEBUG_STRING_CONTAIN_CTRL_D "--sh: input contains ^d. Exiting.\n\n"
-#define DEBUG_STRING_NO_CONTAIN_CTRL_D "--sh: input does not contain ^d\n"
-
-// Message output
-#define ARGUMENT "Argument %d: %s\n"
-#define COMMAND "Command: %s\n"
-#define FILE_IO "File IO:\n"
-#define INPUT_FILE "Input file: %s\n"
-#define OUTPUT_FILE "Output file: %s\n"
-
-#define EXIT_STRING "exit"
-#define PROMPT_STRING "> "
-///////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
-// Function Prototypes
-
-// Main Shell Function
-int shell(void);
-
-// Fork Function and support
-void proc_fork( int* , int*,  char*[], char*[] , int, enum pipe_flag* );
-void syserror( const char * );
-
-// Command Manipulation Functions
-int command_out( char*, int, int, bool*, char*[], unsigned int* );
-int modify_fin_fout( char*, int, int, bool , char*[] );
-
-// Support String Manipulation Functions
-void check_ctrl_d( char[], int );
-void purge_string( char*, int );
-char remove_whitespace( char*, int*, int* );
-
-// Memory Management of char *[]
-void free_run_array(char *[], int);
-void null_run_array(char *[], int);
-
-// Debug String Print
-void show_state( char* [], int );
-void show_io( char* []);
-
+#include<fcntl.h>
+//#include<unistd.h>
 ///////////////////////////////////////////////////////////////////////////////
 int main(void){
-  shell();
-  return 0;
+  return shell();
 }
 ///////////////////////////////////////////////////////////////////////////////
 int shell(void){
   // This is the main function that will run the shell
   // Remember that output is 1 and input is 0
+
+  debug printf( LANGUAGE_SELECT, TERMLANG );
 
   static enum pipe_flag flag_mode;
   flag_mode = NO_PIPE;
@@ -362,7 +272,7 @@ int shell(void){
 ///////////////////////////////////////////////////////////////////////////////
 void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
     char* io_pipe_array [], int arg_count, enum pipe_flag* _flags){
-  // Executes the fork.exec and pipe commands
+  // Executes the fork exec and pipe commands
 
   static char concat_string_buffer[BUFFER_SIZE*2];
 
@@ -680,7 +590,7 @@ int modify_fin_fout( char* input_buffer, int previous_end,
   return current_pos;
 }
 ///////////////////////////////////////////////////////////////////////////////
-void check_ctrl_d( char input_buffer[], int length ){
+void check_ctrl_d( char* input_buffer, int length ){
   // Checks for Ctrl+D in the input
   static int i;
 
@@ -699,7 +609,6 @@ void check_ctrl_d( char input_buffer[], int length ){
 void purge_string( char* buffer, int length ){
   // Empties the string
   static int i;
-
 
   for( i = 0 ; i < length ; i++ )
     buffer[i] = '\0';
@@ -758,3 +667,4 @@ void show_state( char* run_buffer_array[], int args_count ){
 }
 ///////////////////////////////////////////////////////////////////////////////
 
+#endif // TERMINAL_C
