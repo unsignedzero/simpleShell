@@ -1,6 +1,5 @@
-# simpleShell #
+# simpleShell [![Build status:Can't load apt.travis-ci.org](https://api.travis-ci.org/unsignedzero/simpleShell.png?branch=master)](https://travis-ci.org/unsignedzero/simpleShell)
 
-This was a school project where students create a working shell
 that supports piping (specifically |, < and >) and forking.
 
 Currently now the main work is done in terminal.c but the messages that
@@ -12,6 +11,8 @@ Created by David Tran (unsignedzero)
 * * * *
 
 ## Version/Changelog #
+
+* Creating tests.
 
 ## 1.3.0 #
 * Termlang.h are all the constant strings allowing people to translate the

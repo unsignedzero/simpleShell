@@ -1,11 +1,15 @@
-#ifndef TERMLANG_H
-#define TERMLANG_H
-
 /* Contained are all strings that will be printed/used by terminal.c
  *
  * This file can be copied and modified for different languages which
  * will not effect how terminal operates.
+ *
+ * English Version
+ * Created by David Tran (unsignedzero)
+ * Last Modified: 11-28-2013
  */
+
+#ifndef TERMLANG_H
+#define TERMLANG_H
 
 #define TERMLANG "English"
 

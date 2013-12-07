@@ -1,7 +1,19 @@
+/* This code creates a terminal for the user.
+ * Programs that are called by the terminal are handled
+ * via fork, pipe and exec so that the terminal
+ * lives when the command is executed. As this requires low-level system
+ * functions, this might not work properly on Windows.
+ *
+ * Author:David Tran
+ * Version: 1.3.0
+ * Last Modified: 12-06-2013
+ */
 #ifndef TERMINAL_H
 #define TERMINAL_H
 
-#define DEBUG 0
+#ifndef DEBUG
+ #define DEBUG 0
+#endif
 /* Specifics what debug information will be printed.
  * DEBUG &
  *       1 Prints out the cases shell hits and the current position of the
@@ -10,6 +22,9 @@
  *           the pipe mode.
  *       2 Prints the cursor positions that are set for command_out when
  *           cutting out the string
+ *       4 Prints the buffer input and what function is executed. Used mainly
+ *           for batch mode debugging. Prompt will look like the line is
+ *           typed in.
  */
 
 #define BUFFER_SIZE 1024
@@ -88,7 +103,6 @@ int command_out( char* input_buffer, int previous_end,
  * This will current the new current_pos if it needs to be changed
  */
 
-//int modify_fin_fout( char*, int, int, bool , char*[] );
 int modify_fin_fout( char* input_buffer, int previous_end,
     int current_pos, bool mode, char* io_pipe_array[]);
 /* Redirects either the input or output to a file.
@@ -174,6 +188,7 @@ void show_state( char* run_buffer_array[], int args_count );
  */
 ///////////////////////////////////////////////////////////////////////////////
 #define debug if (DEBUG&1)
+#define debug_batch if (DEBUG&4)
 #define debug_verbose if (DEBUG&2)
 ///////////////////////////////////////////////////////////////////////////////
 

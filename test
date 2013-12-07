@@ -1,0 +1,9 @@
+date
+ls -al | grep term
+cat terminal.h | grep    '^//' | uniq > output
+cat output
+wc < output
+cat terminal.c | grep int | wc -l
+rm output
+exit
+

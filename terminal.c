@@ -6,6 +6,7 @@
  *
  * Author:David Tran
  * Version: 1.3.0
+ * Last Modified: 12-06-2013
  */
 
 #ifndef TERMINAL_C
@@ -25,7 +26,7 @@
 
 #include<errno.h>
 #include<fcntl.h>
-//#include<unistd.h>
+
 ///////////////////////////////////////////////////////////////////////////////
 int main(void){
   return shell();
@@ -44,6 +45,7 @@ int shell(void){
   static bool set_file_output = false;
 
   // Stores input
+  //static char input_buffer[BUFFER_SIZE];
   static char input_buffer[BUFFER_SIZE];
   purge_string(input_buffer, BUFFER_SIZE);
 
@@ -76,6 +78,8 @@ int shell(void){
     syserror( PFD_OPEN_ERROR );
   }
 
+  debug_batch printf( "->Starting batch mode\n" );
+
   // Shell Loop
   while(1){
 
@@ -84,8 +88,11 @@ int shell(void){
     fgets(input_buffer, sizeof(input_buffer), stdin);
     debug printf( DEBUG_STRING_CUR_INPUT, input_buffer);
 
-    if ( input_buffer[0] == '\n' )
+    debug_batch printf( "%s\n", input_buffer );
+
+    if ( input_buffer[0] == '\n' ){
       continue;
+    }
 
     // Set the starting position for string parsing
     current_pos = 0;
@@ -199,8 +206,9 @@ int shell(void){
             printf( UNEXPECTED_EOL );
             break;
           }
-          else if ( current_char == '\\' )
+          else if ( current_char == '\\' ){
             current_pos += 1;
+          }
           current_pos += 1;
         }
 
@@ -226,8 +234,9 @@ int shell(void){
                current_char == '|'
                )
             break;
-          else if ( current_char == '\\' )
+          else if ( current_char == '\\' ){
             current_pos += 1;
+          }
           current_pos += 1;
         }
 
@@ -250,10 +259,12 @@ int shell(void){
 
     // Set the right end pipe to the right terminal state
     // and start last command in queue
-    if ( flag_mode == PIPE_CONTA || flag_mode == PIPE_START )
+    if ( flag_mode == PIPE_CONTA || flag_mode == PIPE_START ){
       flag_mode = PIPE_DRAINA;
-    else if ( flag_mode == PIPE_CONTB )
+    }
+    else if ( flag_mode == PIPE_CONTB ){
       flag_mode = PIPE_DRAINB;
+    }
 
     proc_fork(pfda, pfdb, run_buffer_array, io_pipe_array, args_count, &flag_mode);
     is_command = true;
@@ -263,8 +274,9 @@ int shell(void){
 
   // Close File Descriptors for parent
   if ( close(pfda[0]) == -1 || close(pfda[1]) == -1 ||
-      close(pfdb[0]) == -1 || close(pfdb[1]) == -1 )
+      close(pfdb[0]) == -1 || close(pfdb[1]) == -1 ){
     syserror( CLOSE_PIPE_FAIL );
+  }
 
   // End
   return 0;
@@ -283,8 +295,9 @@ void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
 
   status = 0;
 
-  if ( strcmp(EXIT_STRING, run_buffer_array[0]) == 0 )
+  if ( strcmp(EXIT_STRING, run_buffer_array[0]) == 0 ){
     exit(0);
+  }
 
   debug printf( DEBUG_STRING_FORK_START );
 
@@ -309,17 +322,20 @@ void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
 
         // Stdout
         if ( io_pipe_array[1] != NULL ){
-          if ( close( 1 ) == -1 )
+          if ( close( 1 ) == -1 ){
             syserror( STDOUT_CLOSE_ERROR );
+          }
           status = open(io_pipe_array[1],  O_WRONLY | O_CREAT);
-          if ( status < 0 )
+          if ( status < 0 ){
             syserror( STDIN_OPEN_ERROR );
+          }
           dup(status);
         }
 
         if ( close( pfda[0] ) == -1 || close( pfda[1] ) == -1 ||
-            close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 )
+            close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 ){
           syserror( PFD_CLOSE_ERROR );
+        }
 
         execvp( run_buffer_array[0], (char** ) run_buffer_array );
         sprintf( concat_string_buffer, COMMAND_NOT_FOUND, run_buffer_array[0]);
@@ -337,22 +353,26 @@ void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
       case  0:
         // Stdin
         if ( io_pipe_array[0] != NULL ){
-          if ( close( 0 ) == -1 )
+          if ( close( 0 ) == -1 ){
             syserror( STDIN_CLOSE_ERROR );
+          }
           status = open(io_pipe_array[0], O_RDONLY | O_CREAT);
-          if ( status < 0 )
+          if ( status < 0 ){
             syserror( STDIN_OPEN_ERROR );
+          }
           dup(status);
         }
 
         // Stdout
-        if ( close( 1 ) == -1 )
+        if ( close( 1 ) == -1 ){
           syserror( STDOUT_CLOSE_ERROR );
+        }
         dup(pfda[1]);
 
         if ( close( pfda[0] ) == -1 || close( pfda[1] ) == -1 ||
-            close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 )
+            close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 ){
           syserror( PFD_CLOSE_ERROR );
+        }
 
         execvp( run_buffer_array[0], (char** ) run_buffer_array );
         sprintf( concat_string_buffer, COMMAND_NOT_FOUND, run_buffer_array[0]);
@@ -369,18 +389,21 @@ void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
         break;
       case  0:
         // Stdin
-        if ( close( 0 ) == -1 )
+        if ( close( 0 ) == -1 ){
           syserror( STDIN_CLOSE_ERROR );
+        }
         dup(pfda[0]);
 
         // Stdout
-        if ( close( 1 ) == -1 )
+        if ( close( 1 ) == -1 ){
           syserror( STDOUT_CLOSE_ERROR );
+        }
         dup(pfdb[1]);
 
         if ( close( pfda[0] ) == -1 || close( pfda[1] ) == -1 ||
-            close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 )
+            close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 ){
           syserror( PFD_CLOSE_ERROR );
+        }
 
         execvp( run_buffer_array[0], (char** ) run_buffer_array );
         sprintf( concat_string_buffer, COMMAND_NOT_FOUND, run_buffer_array[0]);
@@ -397,18 +420,21 @@ void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
         break;
       case  0:
         // Stdin
-        if ( close( 0 ) == -1 )
+        if ( close( 0 ) == -1 ){
           syserror( STDIN_CLOSE_ERROR );
+        }
         dup(pfdb[0]);
 
         // Stdout
-        if ( close( 1 ) == -1 )
+        if ( close( 1 ) == -1 ){
           syserror( STDOUT_CLOSE_ERROR );
+        }
         dup(pfda[1]);
 
         if ( close( pfda[0] ) == -1 || close( pfda[1] ) == -1 ||
-            close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 )
+            close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 ){
           syserror( PFD_CLOSE_ERROR );
+        }
 
         execvp( run_buffer_array[0], (char** ) run_buffer_array );
         sprintf( concat_string_buffer, COMMAND_NOT_FOUND, run_buffer_array[0]);
@@ -425,23 +451,27 @@ void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
         break;
       case  0:
         // Stdin
-        if ( close( 0 ) == -1 )
+        if ( close( 0 ) == -1 ){
           syserror( STDIN_CLOSE_ERROR );
+        }
         dup(pfda[0]);
 
         // Stdout
         if ( io_pipe_array[1] != NULL ){
-          if ( close( 1 ) == -1 )
+          if ( close( 1 ) == -1 ){
             syserror( STDOUT_CLOSE_ERROR );
+          }
           status = open(io_pipe_array[1], O_WRONLY | O_CREAT);
-          if ( status < 0 )
+          if ( status < 0 ){
             syserror( STDOUT_OPEN_ERROR );
+          }
           dup(status);
         }
 
         if ( close( pfda[0] ) == -1 || close( pfda[1] ) == -1 ||
-            close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 )
+            close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 ){
           syserror( PFD_CLOSE_ERROR );
+        }
 
         execvp( run_buffer_array[0], (char** ) run_buffer_array );
         sprintf( concat_string_buffer, COMMAND_NOT_FOUND, run_buffer_array[0]);
@@ -464,16 +494,19 @@ void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
 
         // Stdout
         if ( io_pipe_array[1] != NULL ){
-          if ( close( 1 ) == -1 )
+          if ( close( 1 ) == -1 ){
             syserror( STDOUT_CLOSE_ERROR );
+          }
           status = open(io_pipe_array[1], O_WRONLY | O_CREAT);
-          if ( status < 0 )
+          if ( status < 0 ){
             syserror( STDOUT_OPEN_ERROR );
+          }
           dup(status);
         }
         if ( close( pfda[0] ) == -1 || close( pfda[1] ) == -1 ||
-            close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 )
+            close( pfdb[0] ) == -1 || close( pfdb[1] ) == -1 ){
           syserror( PFD_CLOSE_ERROR );
+        }
 
         execvp( run_buffer_array[0], (char** ) run_buffer_array );
         sprintf( concat_string_buffer, COMMAND_NOT_FOUND, run_buffer_array[0]);
@@ -484,20 +517,24 @@ void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
 
   // Close the used pipe from the parent
   if ( (*_flags) == PIPE_DRAINA || (*_flags) == PIPE_CONTA ){
-    if ( close(pfda[0]) == -1 || close(pfda[1]) == -1 )
+    if ( close(pfda[0]) == -1 || close(pfda[1]) == -1 ){
       syserror( PFD_A_CLOSE_FAIL );
+    }
   }
-  else if ( (*_flags) == PIPE_DRAINB || (*_flags) == PIPE_CONTB )
-    if ( close(pfdb[0]) == -1 || close(pfdb[1]) == -1 )
+  else if ( (*_flags) == PIPE_DRAINB || (*_flags) == PIPE_CONTB ){
+    if ( close(pfdb[0]) == -1 || close(pfdb[1]) == -1 ){
       syserror( PFD_B_CLOSE_FAIL );
+    }
+}
 
   // Parent Waiting
   while ( (pid = wait( (int *) 0 ) ) != -1 )
     ;
 
   // Switch pipe states and make a new pipe
-  if ( (*_flags) == PIPE_START )
+  if ( (*_flags) == PIPE_START ){
     (*_flags) = PIPE_CONTA;
+  }
   else if ( (*_flags) == PIPE_CONTA ){
     (*_flags) = PIPE_CONTB;
     if ( pipe(pfda) == -1 )
@@ -610,8 +647,9 @@ void purge_string( char* buffer, int length ){
   // Empties the string
   static int i;
 
-  for( i = 0 ; i < length ; i++ )
+  for( i = 0 ; i < length ; i++ ){
     buffer[i] = '\0';
+  }
 }
 ///////////////////////////////////////////////////////////////////////////////
 char remove_whitespace( char* input_buffer, int* previous_end,
@@ -661,9 +699,9 @@ void show_state( char* run_buffer_array[], int args_count ){
   static int i;
 
   printf( COMMAND , run_buffer_array[0] );
-  for( i = 0 ; i < args_count ; i++ )
+  for( i = 0 ; i < args_count ; i++ ){
     printf( ARGUMENT , i, run_buffer_array[1+i] );
-
+  }
 }
 ///////////////////////////////////////////////////////////////////////////////
 
