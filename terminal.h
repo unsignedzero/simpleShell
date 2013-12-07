@@ -5,7 +5,7 @@
  * functions, this might not work properly on Windows.
  *
  * Author:David Tran
- * Version: 1.3.0
+ * Version: 1.4.0
  * Last Modified: 12-06-2013
  */
 #ifndef TERMINAL_H

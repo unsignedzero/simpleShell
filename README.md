@@ -12,6 +12,8 @@ Created by David Tran (unsignedzero)
 
 ## Version/Changelog #
 
+## 1.4.0 #
+* Test works. Updating version number.
 * Added default file permissions on the open.
 * Added more includes to resolve Travis-CI build issue.
 * Output file that not be accessible. Touched first.
