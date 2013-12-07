@@ -5,7 +5,7 @@
  * functions, this might not work properly on Windows.
  *
  * Author:David Tran
- * Version: 1.3.0
+ * Version: 1.3.2
  * Last Modified: 12-06-2013
  */
 
@@ -317,7 +317,7 @@ void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
         if ( io_pipe_array[0] != NULL ){
           if ( close( 0 ) == -1 )
             syserror( STDIN_CLOSE_ERROR );
-          status = open(io_pipe_array[0],  O_RDONLY | O_CREAT);
+          status = open(io_pipe_array[0],  O_RDONLY | O_CREAT, 0644);
           if ( status < 0 )
             syserror( STDIN_OPEN_ERROR );
           dup(status);
@@ -328,7 +328,7 @@ void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
           if ( close( 1 ) == -1 ){
             syserror( STDOUT_CLOSE_ERROR );
           }
-          status = open(io_pipe_array[1],  O_WRONLY | O_CREAT);
+          status = open(io_pipe_array[1],  O_WRONLY | O_CREAT, 0644);
           if ( status < 0 ){
             syserror( STDIN_OPEN_ERROR );
           }
@@ -359,7 +359,7 @@ void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
           if ( close( 0 ) == -1 ){
             syserror( STDIN_CLOSE_ERROR );
           }
-          status = open(io_pipe_array[0], O_RDONLY | O_CREAT);
+          status = open(io_pipe_array[0], O_RDONLY | O_CREAT, 0644);
           if ( status < 0 ){
             syserror( STDIN_OPEN_ERROR );
           }
@@ -464,7 +464,7 @@ void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
           if ( close( 1 ) == -1 ){
             syserror( STDOUT_CLOSE_ERROR );
           }
-          status = open(io_pipe_array[1], O_WRONLY | O_CREAT);
+          status = open(io_pipe_array[1], O_WRONLY | O_CREAT, 0644);
           if ( status < 0 ){
             syserror( STDOUT_OPEN_ERROR );
           }
@@ -500,7 +500,7 @@ void proc_fork( int* pfda, int* pfdb, char* run_buffer_array [],
           if ( close( 1 ) == -1 ){
             syserror( STDOUT_CLOSE_ERROR );
           }
-          status = open(io_pipe_array[1], O_WRONLY | O_CREAT);
+          status = open(io_pipe_array[1], O_WRONLY | O_CREAT, 0644);
           if ( status < 0 ){
             syserror( STDOUT_OPEN_ERROR );
           }
