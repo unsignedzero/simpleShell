@@ -12,7 +12,9 @@ Created by David Tran (unsignedzero)
 
 ## Version/Changelog #
 
-* Creating tests.
+* Added more includes to resolve Travis-CI build issue.
+* Output file that not be accessible. Touched first.
+* Creating tests for Travis-CI.
 
 ## 1.3.0 #
 * Termlang.h are all the constant strings allowing people to translate the

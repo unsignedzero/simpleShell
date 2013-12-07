@@ -1,5 +1,6 @@
 date
 ls -al | grep term
+touch output
 cat terminal.h | grep    '^//' | uniq > output
 cat output
 wc < output
