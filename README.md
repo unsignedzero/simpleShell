@@ -8,9 +8,13 @@ the user to translate or insert different messages as needed.
 
 Created by David Tran (unsignedzero)
 
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/unsignedzero/simpleshell/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
 * * * *
 
 ## Version/Changelog #
+
+* Added BitDeli badge.
 
 ## 1.4.0 #
 * Test works. Updating version number.
