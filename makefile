@@ -8,7 +8,7 @@ default: terminal.x
 terminal.x:
 	$(CC) $(CCSPEEDFLAGS) $(CCDEBUGFLAGS) -o $@ terminal.h terminal.c -D DEBUG=0
 
-test: clean terminal.x
+test: clean
 	$(CC) $(CCSPEEDFLAGS) $(CCDEBUGFLAGS) -o terminal.x terminal.h terminal.c -D DEBUG=4
 	cat test | ./terminal.x
 

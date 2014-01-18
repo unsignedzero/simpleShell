@@ -15,6 +15,9 @@ Created by David Tran (unsignedzero)
 
 ## Version/Changelog #
 
+## 1.5.0 #
+* Coverage works. Updating version number.
+* Added more tests.
 * Added code coverage to this codebase and added Coveralls.io badge.
 * Added BitDeli badge.
 
