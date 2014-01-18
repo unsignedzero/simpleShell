@@ -2,8 +2,8 @@ language: cpp
 compiler:
   - gcc
 before_install:
-  - sudo pip install cpp-coveralls --use-mirrors
+  - sudo pip install cpp-coveralls
 script:
-  - make profile
+  - make test
 after_success:
   - coveralls --exclude lib --exclude tests

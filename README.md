@@ -15,6 +15,8 @@ Created by David Tran (unsignedzero)
 
 ## Version/Changelog #
 
+* Tweaking travis config so coverage is executed once.
+
 ## 1.5.0 #
 * Coverage works. Updating version number.
 * Added more tests.

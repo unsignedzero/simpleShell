@@ -1,22 +1,20 @@
 CC=gcc
 CCSPEEDFLAGS=-O3
 CCDEBUGFLAGS=-Wall -Wextra
-CCTESTFLAGS=-fprofile-arcs -ftest-coverage -O0 -g
+CCTESTFLAGS=-coverage -O0 -g
 
 default: terminal.x
 
 terminal.x:
-	$(CC) $(CCSPEEDFLAGS) $(CCDEBUGFLAGS) -o $@ terminal.h terminal.c -D DEBUG=0
+	$(CC) $(CCDEBUGFLAGS) $(CCSPEEDFLAGS) -o $@ terminal.h terminal.c -D DEBUG=0
 
 test: clean
-	$(CC) $(CCSPEEDFLAGS) $(CCDEBUGFLAGS) -o terminal.x terminal.h terminal.c -D DEBUG=4
+	$(CC) $(CCDEBUGFLAGS) $(CCTESTFLAGS) -o terminal.x terminal.h terminal.c -D DEBUG=4
 	cat test | ./terminal.x
 
-profile: clean
-	$(CC) $(CCTESTFLAGS) -o terminal.x terminal.h terminal.c -D DEBUG=4
-	cat test | ./terminal.x
+profile: clean test
 	gcov terminal.c
-	coveralls --verbose | grep 'coverage' | grep '1'
+	coveralls --exclude lib --exclude tests --verbose | grep 'coverage' | grep '1'
 
 clean:
 	rm -rvf *.x *.o *.out *.gcda *.gcov *.gcno
