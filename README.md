@@ -1,6 +1,9 @@
-# simpleShell [![Build status:Can't load apt.travis-ci.org](https://api.travis-ci.org/unsignedzero/simpleShell.png?branch=master)](https://travis-ci.org/unsignedzero/simpleShell)
+# simpleShell
+[![Build status:Can't load apt.travis-ci.org](https://api.travis-ci.org/unsignedzero/simpleShell.png?branch=master)](https://travis-ci.org/unsignedzero/simpleShell)
+[![Coverage Status](https://coveralls.io/repos/unsignedzero/simpleShell/badge.png?branch=master)](https://coveralls.io/r/unsignedzero/simpleShell?branch=master)
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/unsignedzero/simpleshell/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
 
-that supports piping (specifically |, < and >) and forking.
+A simpleShell that supports piping (specifically |, < and >) and forking.
 
 Currently now the main work is done in terminal.c but the messages that
 it prints can be edited externally in termlang.h and compiled in, allowing
@@ -8,12 +11,11 @@ the user to translate or insert different messages as needed.
 
 Created by David Tran (unsignedzero)
 
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/unsignedzero/simpleshell/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
-
 * * * *
 
 ## Version/Changelog #
 
+* Added code coverage to this codebase and added Coveralls.io badge.
 * Added BitDeli badge.
 
 ## 1.4.0 #
