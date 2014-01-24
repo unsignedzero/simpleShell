@@ -1,3 +1,7 @@
+# Used to generate the libs and the executable.
+# Created by David Tran (unsignedzero)
+# Last Modified: 01-24-2014
+
 CC=gcc
 CCSPEEDFLAGS=-O3
 CCDEBUGFLAGS=-Wall -Wextra
@@ -22,3 +26,5 @@ profile: clean test
 
 clean:
 	rm -rvf *.x *.o *.out *.gcda *.gcov *.gcno
+	rm -rvf app.info
+	rm -rvf cov_htmp*

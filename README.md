@@ -15,6 +15,7 @@ Created by David Tran (unsignedzero)
 
 ## Version/Changelog #
 
+* Make clean now removes files generated from lcov. [skip ci]
 * Added make recipe to run lcov locally. [skip ci]
 * Cleaning up README.md. [skip ci]
 * Tweaking travis config so coverage is executed once.
