@@ -3,10 +3,10 @@
 [![Coverage Status](https://coveralls.io/repos/unsignedzero/simpleShell/badge.png?branch=master)](https://coveralls.io/r/unsignedzero/simpleShell?branch=master)
 [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/unsignedzero/simpleshell/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
 
-A simpleShell that supports piping (specifically |, < and >) and forking.
+A simple shell that supports piping (specifically |, < and >) and forking.
 
-Currently now the main work is done in terminal.c but the messages that
-it prints can be edited externally in termlang.h and compiled in, allowing
+Currently, the majority of the work is done in terminal.c but the messages that
+it prints can be edited externally in termlang.h, allowing
 the user to translate or insert different messages as needed.
 
 Created by David Tran (unsignedzero)
@@ -15,6 +15,7 @@ Created by David Tran (unsignedzero)
 
 ## Version/Changelog #
 
+* Cleaning up README.md. [skip ci]
 * Tweaking travis config so coverage is executed once.
 
 ## 1.5.0 #
