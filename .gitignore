@@ -64,6 +64,10 @@ out
 *.gcov
 *.gcno
 
+# lcov files
+app.info
+cov_htmp/
+
 # Latex
 *.aux
 

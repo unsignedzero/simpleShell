@@ -12,6 +12,10 @@ test: clean
 	$(CC) $(CCDEBUGFLAGS) $(CCTESTFLAGS) -o terminal.x terminal.h terminal.c -D DEBUG=4
 	cat test | ./terminal.x
 
+lcov: clean test
+	lcov --directory . --capture --output-file app.info
+	genhtml --output-directory cov_htmp app.info
+
 profile: clean test
 	gcov terminal.c
 	coveralls --exclude lib --exclude tests --verbose | grep 'coverage' | grep '1'

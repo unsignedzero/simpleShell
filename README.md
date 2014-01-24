@@ -15,6 +15,7 @@ Created by David Tran (unsignedzero)
 
 ## Version/Changelog #
 
+* Added make recipe to run lcov locally. [skip ci]
 * Cleaning up README.md. [skip ci]
 * Tweaking travis config so coverage is executed once.
 
